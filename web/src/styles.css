@@ -1,0 +1,159 @@
+:root {
+  color-scheme: light;
+  --ink: #15231c;
+  --muted: #4d5f55;
+  --paper: #f3efe6;
+  --panel: #fffdf8;
+  --line: #cfc6b4;
+  --accent: #0f6a4b;
+  --accent-soft: #d7efe4;
+  --danger: #8a1f1f;
+  --warn: #7a5b12;
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, #e7f4ec 0, transparent 40%),
+    linear-gradient(160deg, #f7f2e8, #ebe4d6 55%, #e4eee8);
+}
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+.hero {
+  margin-bottom: 1.75rem;
+}
+
+.brand {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0.35rem 0 0.5rem;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  line-height: 1.05;
+}
+
+.lede {
+  margin: 0;
+  color: var(--muted);
+}
+
+.catalog {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 1.5rem;
+}
+
+.ticket {
+  display: grid;
+  gap: 0.25rem;
+  text-align: left;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+}
+
+.ticket.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.checkout {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+label,
+fieldset {
+  display: grid;
+  gap: 0.4rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+input[type="number"] {
+  width: 6rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  font: inherit;
+}
+
+.radio {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.total {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+button[type="submit"] {
+  justify-self: start;
+  padding: 0.75rem 1.2rem;
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+button[type="submit"]:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.pending {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.receipt {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.receipt h2 {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .catalog {
+    grid-template-columns: 1fr;
+  }
+}

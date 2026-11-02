@@ -3,7 +3,10 @@ using Ticketing.Api.Data;
 
 namespace Ticketing.Api.Checkout;
 
-public sealed class CheckoutService(TicketingDbContext db)
+public sealed class CheckoutService(
+    TicketingDbContext db,
+    IEnumerable<IPaymentHandler> paymentHandlers,
+    PaymentConfirmationService confirmation)
 {
     public async Task<OrderResponse> CreateAsync(CreateOrderRequest request, CancellationToken cancellationToken)
     {
@@ -11,50 +14,23 @@ public sealed class CheckoutService(TicketingDbContext db)
             throw new CheckoutValidationException("RequestId is required.");
         if (request.Quantity < 1)
             throw new CheckoutValidationException("Quantity must be a positive integer.");
-        if (request.PaymentMethod is not (CheckoutConstants.PaymentMethodCard or CheckoutConstants.PaymentMethodQr))
+
+        var handler = paymentHandlers.FirstOrDefault(h =>
+            string.Equals(h.Method, request.PaymentMethod, StringComparison.Ordinal));
+        if (handler is null)
             throw new CheckoutValidationException("PaymentMethod must be Card or QR.");
 
-        // Milestone 1 ships card checkout only; QR lands in milestone 2.
-        if (request.PaymentMethod != CheckoutConstants.PaymentMethodCard)
-            throw new CheckoutValidationException("Only Card payment is supported in this milestone.");
-
-        var existing = await db.Orders
-            .Include(o => o.Transaction)!
-            .ThenInclude(t => t!.LedgerEntries)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(o => o.RequestId == request.RequestId, cancellationToken);
-
+        var existing = await LoadByRequestIdAsync(request.RequestId, tracking: false, cancellationToken);
         if (existing is not null)
-        {
-            if (existing.TicketId != request.TicketId
-                || existing.Quantity != request.Quantity
-                || !string.Equals(existing.PaymentMethod, request.PaymentMethod, StringComparison.Ordinal))
-            {
-                throw new IdempotencyConflictException();
-            }
-
-            return OrderResponse.From(existing);
-        }
+            return ReplayOrConflict(existing, request);
 
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
-        // Re-check under the transaction in case of a race on RequestId.
-        existing = await db.Orders
-            .Include(o => o.Transaction)!
-            .ThenInclude(t => t!.LedgerEntries)
-            .FirstOrDefaultAsync(o => o.RequestId == request.RequestId, cancellationToken);
-
+        existing = await LoadByRequestIdAsync(request.RequestId, tracking: true, cancellationToken);
         if (existing is not null)
         {
             await tx.CommitAsync(cancellationToken);
-            if (existing.TicketId != request.TicketId
-                || existing.Quantity != request.Quantity
-                || !string.Equals(existing.PaymentMethod, request.PaymentMethod, StringComparison.Ordinal))
-            {
-                throw new IdempotencyConflictException();
-            }
-
-            return OrderResponse.From(existing);
+            return ReplayOrConflict(existing, request);
         }
 
         var ticket = await db.Tickets
@@ -84,8 +60,8 @@ public sealed class CheckoutService(TicketingDbContext db)
             Quantity = request.Quantity,
             UnitPriceAed = ticket.PriceAed,
             TotalAed = total,
-            PaymentMethod = CheckoutConstants.PaymentMethodCard,
-            Status = CheckoutConstants.StatusSucceeded,
+            PaymentMethod = handler.Method,
+            Status = CheckoutConstants.StatusPending,
             CreatedAtUtc = now
         };
 
@@ -93,34 +69,15 @@ public sealed class CheckoutService(TicketingDbContext db)
         {
             Id = transactionId,
             OrderId = orderId,
-            PaymentMethod = CheckoutConstants.PaymentMethodCard,
-            Status = CheckoutConstants.StatusSucceeded,
+            PaymentMethod = handler.Method,
+            Status = CheckoutConstants.StatusPending,
             AmountAed = total,
-            ConfirmedAtUtc = now,
             CreatedAtUtc = now
-        };
-
-        var debit = new LedgerEntry
-        {
-            Id = Guid.NewGuid(),
-            TransactionId = transactionId,
-            Account = CheckoutConstants.AccountCashGateway,
-            Side = CheckoutConstants.LedgerSideDebit,
-            AmountAed = total
-        };
-
-        var credit = new LedgerEntry
-        {
-            Id = Guid.NewGuid(),
-            TransactionId = transactionId,
-            Account = CheckoutConstants.AccountTicketSalesRevenue,
-            Side = CheckoutConstants.LedgerSideCredit,
-            AmountAed = total
         };
 
         db.Orders.Add(order);
         db.Transactions.Add(payment);
-        db.LedgerEntries.AddRange(debit, credit);
+        handler.Prepare(order, payment, now, confirmation);
 
         try
         {
@@ -132,27 +89,14 @@ public sealed class CheckoutService(TicketingDbContext db)
             await tx.RollbackAsync(cancellationToken);
             db.ChangeTracker.Clear();
 
-            var replay = await db.Orders
-                .Include(o => o.Transaction)!
-                .ThenInclude(t => t!.LedgerEntries)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(o => o.RequestId == request.RequestId, cancellationToken);
-
+            var replay = await LoadByRequestIdAsync(request.RequestId, tracking: false, cancellationToken);
             if (replay is null)
                 throw;
 
-            if (replay.TicketId != request.TicketId
-                || replay.Quantity != request.Quantity
-                || !string.Equals(replay.PaymentMethod, request.PaymentMethod, StringComparison.Ordinal))
-            {
-                throw new IdempotencyConflictException();
-            }
-
-            return OrderResponse.From(replay);
+            return ReplayOrConflict(replay, request);
         }
 
         order.Transaction = payment;
-        payment.LedgerEntries = [debit, credit];
         return OrderResponse.From(order);
     }
 
@@ -165,5 +109,29 @@ public sealed class CheckoutService(TicketingDbContext db)
             .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
         return order is null ? null : OrderResponse.From(order);
+    }
+
+    private async Task<Order?> LoadByRequestIdAsync(string requestId, bool tracking, CancellationToken cancellationToken)
+    {
+        IQueryable<Order> query = db.Orders
+            .Include(o => o.Transaction)!
+            .ThenInclude(t => t!.LedgerEntries);
+
+        if (!tracking)
+            query = query.AsNoTracking();
+
+        return await query.FirstOrDefaultAsync(o => o.RequestId == requestId, cancellationToken);
+    }
+
+    private static OrderResponse ReplayOrConflict(Order existing, CreateOrderRequest request)
+    {
+        if (existing.TicketId != request.TicketId
+            || existing.Quantity != request.Quantity
+            || !string.Equals(existing.PaymentMethod, request.PaymentMethod, StringComparison.Ordinal))
+        {
+            throw new IdempotencyConflictException();
+        }
+
+        return OrderResponse.From(existing);
     }
 }

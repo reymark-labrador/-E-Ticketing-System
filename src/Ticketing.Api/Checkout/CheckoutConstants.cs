@@ -13,4 +13,6 @@ public static class CheckoutConstants
 
     public const string AccountCashGateway = "Cash/Payment Gateway";
     public const string AccountTicketSalesRevenue = "Ticket Sales Revenue";
+
+    public static readonly TimeSpan QrDueDelay = TimeSpan.FromSeconds(8);
 }

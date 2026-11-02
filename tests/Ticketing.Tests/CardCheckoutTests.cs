@@ -7,23 +7,12 @@ namespace Ticketing.Tests;
 
 public sealed class CardCheckoutTests
 {
-    private static string ConnectionString =>
-        Environment.GetEnvironmentVariable("TICKETING_TEST_DB")
-        ?? "Host=localhost;Port=55432;Database=ticketing_tests;Username=ticketing;Password=local_ticketing";
-
     [Fact]
     public async Task Card_purchase_of_two_gold_tickets_posts_balanced_ledger_and_reduces_quota()
     {
-        var options = new DbContextOptionsBuilder<TicketingDbContext>().UseNpgsql(ConnectionString).Options;
-        await using (var setup = new TicketingDbContext(options))
-        {
-            await setup.Database.MigrateAsync();
-            await setup.Database.ExecuteSqlRawAsync("""TRUNCATE "LedgerEntries", "Transactions", "Orders" RESTART IDENTITY CASCADE""");
-            await setup.Database.ExecuteSqlRawAsync("""UPDATE "Tickets" SET "RemainingQuota" = "Capacity" """);
-        }
-
-        await using var db = new TicketingDbContext(options);
-        var checkout = new CheckoutService(db);
+        await TestDb.ResetAsync();
+        await using var db = new TicketingDbContext(TestDb.Options());
+        var checkout = TestDb.CreateCheckout(db);
         var requestId = $"card-gold-{Guid.NewGuid():N}";
 
         var order = await checkout.CreateAsync(new CreateOrderRequest

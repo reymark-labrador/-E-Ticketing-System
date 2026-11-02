@@ -8,8 +8,19 @@ var connectionString = builder.Configuration.GetConnectionString("Ticketing")
     ?? throw new InvalidOperationException("Set ConnectionStrings:Ticketing before starting the API.");
 
 builder.Services.AddDbContext<TicketingDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddScoped<PaymentConfirmationService>();
 builder.Services.AddScoped<CheckoutService>();
+builder.Services.AddSingleton<IPaymentHandler, CreditCardHandler>();
+builder.Services.AddSingleton<IPaymentHandler, QRHandler>();
+builder.Services.AddHostedService<QrPaymentWorker>();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
+});
+
 var app = builder.Build();
+app.UseCors();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
@@ -33,7 +44,10 @@ app.MapPost("/api/orders", async (CreateOrderRequest request, CheckoutService ch
     try
     {
         var order = await checkout.CreateAsync(request, cancellationToken);
-        return Results.Created($"/api/orders/{order.Id}", order);
+        var location = $"/api/orders/{order.Id}";
+        return order.Status == CheckoutConstants.StatusPending
+            ? Results.Accepted(location, order)
+            : Results.Created(location, order);
     }
     catch (CheckoutValidationException ex)
     {
