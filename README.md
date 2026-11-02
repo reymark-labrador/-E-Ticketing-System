@@ -1,4 +1,4 @@
-# Ticketing
+# E-Ticketing System
 
 ASP.NET Core 8 + PostgreSQL + React demo for e-ticketing checkout. One Compose command starts the API, database, and browser UI. Buy tickets with a simulated **Card** (immediate) or **QR** (confirms about eight seconds later). Quota reservation, payment status, and ledger posting stay consistent under retries and restarts.
 

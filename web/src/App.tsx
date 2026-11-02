@@ -102,7 +102,7 @@ export default function App() {
   return (
     <div className="page">
       <header className="hero">
-        <p className="brand">Ticketing</p>
+        <p className="brand">E-Ticketing System</p>
         <h1>Buy tickets</h1>
         <p className="lede">Simulated Card and QR checkout against the live API.</p>
       </header>
