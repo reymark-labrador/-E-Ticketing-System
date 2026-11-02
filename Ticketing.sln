@@ -1,0 +1,22 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ticketing.Api", "src\Ticketing.Api\Ticketing.Api.csproj", "{BAFE881B-E05F-402B-9C58-A22BB7EACD10}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ticketing.Tests", "tests\Ticketing.Tests\Ticketing.Tests.csproj", "{7A78C344-87A3-4F0E-9485-A38BC1E3CA57}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BAFE881B-E05F-402B-9C58-A22BB7EACD10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAFE881B-E05F-402B-9C58-A22BB7EACD10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BAFE881B-E05F-402B-9C58-A22BB7EACD10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BAFE881B-E05F-402B-9C58-A22BB7EACD10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A78C344-87A3-4F0E-9485-A38BC1E3CA57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A78C344-87A3-4F0E-9485-A38BC1E3CA57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A78C344-87A3-4F0E-9485-A38BC1E3CA57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A78C344-87A3-4F0E-9485-A38BC1E3CA57}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

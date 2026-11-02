@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/TestResults/
+artifacts/
+.vs/
+.idea/
+node_modules/
+dist/
+.env
+.env.*
+*.user

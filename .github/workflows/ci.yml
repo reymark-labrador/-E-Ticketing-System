@@ -1,0 +1,25 @@
+name: Build and test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ticketing_tests
+          POSTGRES_USER: ticketing
+          POSTGRES_PASSWORD: local_ticketing
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U ticketing -d ticketing_tests"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet restore
+      - run: dotnet build --no-restore
+      - run: dotnet test --no-build
