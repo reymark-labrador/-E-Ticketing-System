@@ -6,7 +6,6 @@ import {
   OrderResponse,
   Ticket
 } from "./api";
-import ReceiptLedger from "./ReceiptLedger";
 
 type PaymentMethod = "Card" | "QR";
 
@@ -176,7 +175,6 @@ export default function CheckoutPage() {
           {receipt.payment?.confirmedAtUtc && (
             <p>Confirmed {new Date(receipt.payment.confirmedAtUtc).toISOString()}</p>
           )}
-          <ReceiptLedger order={receipt} />
         </section>
       )}
     </>
