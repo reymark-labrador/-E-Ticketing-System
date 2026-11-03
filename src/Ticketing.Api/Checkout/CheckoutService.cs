@@ -124,6 +124,26 @@ public sealed class CheckoutService(
         return order is null ? null : OrderResponse.From(order);
     }
 
+    public async Task<IReadOnlyList<OrderSummaryResponse>> ListAsync(CancellationToken cancellationToken)
+    {
+        return await (
+            from o in db.Orders.AsNoTracking()
+            join t in db.Tickets.AsNoTracking() on o.TicketId equals t.Id
+            orderby o.CreatedAtUtc descending
+            select new OrderSummaryResponse
+            {
+                Id = o.Id,
+                CreatedAtUtc = o.CreatedAtUtc,
+                TicketType = t.Name,
+                Quantity = o.Quantity,
+                TotalAed = o.TotalAed,
+                PaymentMethod = o.PaymentMethod,
+                Status = o.Status
+            })
+            .Take(50)
+            .ToListAsync(cancellationToken);
+    }
+
     private async Task<Order?> LoadByRequestIdAsync(string requestId, bool tracking, CancellationToken cancellationToken)
     {
         IQueryable<Order> query = db.Orders

@@ -15,11 +15,16 @@ docker compose up --build -d
 
 | Surface | URL |
 | --- | --- |
-| Browser UI | http://localhost:5173 |
+| Checkout UI | http://localhost:5173 |
+| Orders dashboard | http://localhost:5173/dashboard |
+| Swagger UI | http://localhost:5080/swagger |
+| OpenAPI JSON | http://localhost:5080/swagger/v1/swagger.json |
 | Catalog API | http://localhost:5080/api/tickets |
 | Orders API | http://localhost:5080/api/orders |
 
-Open the UI, pick Gold / quantity `2` / Card, and buy. Expect **AED 200**, Gold remaining **98**, and a receipt with transaction ID plus UTC confirmation time. QR shows pending immediately, then succeeds after the worker confirms.
+Open the checkout UI, pick Gold / quantity `2` / Card, and buy. Expect **AED 200**, Gold remaining **98**, and a receipt with transaction ID plus UTC confirmation time. The receipt shows the debit/credit ledger posting (Card shows Balanced immediately; QR stays open with “Awaiting payment confirmation.” until the worker confirms). QR shows pending immediately, then succeeds after the worker confirms.
+
+The read-only **Dashboard** lists the latest 50 orders (`GET /api/orders`) and shows the selected order’s ledger via `GET /api/orders/{id}`. Pending QR rows update in place when payment confirms.
 
 ## Catalog (demo quotas)
 

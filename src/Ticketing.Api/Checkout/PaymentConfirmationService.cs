@@ -5,6 +5,29 @@ namespace Ticketing.Api.Checkout;
 
 public sealed class PaymentConfirmationService(TicketingDbContext db)
 {
+    public static IReadOnlyList<LedgerEntry> CreateBalancedLedgerEntries(Guid transactionId, decimal amountAed)
+    {
+        return
+        [
+            new LedgerEntry
+            {
+                Id = Guid.NewGuid(),
+                TransactionId = transactionId,
+                Account = CheckoutConstants.AccountCashGateway,
+                Side = CheckoutConstants.LedgerSideDebit,
+                AmountAed = amountAed
+            },
+            new LedgerEntry
+            {
+                Id = Guid.NewGuid(),
+                TransactionId = transactionId,
+                Account = CheckoutConstants.AccountTicketSalesRevenue,
+                Side = CheckoutConstants.LedgerSideCredit,
+                AmountAed = amountAed
+            }
+        ];
+    }
+
     public void AttachSucceededPayment(Order order, PaymentTransaction payment, DateTimeOffset confirmedAt)
     {
         order.Status = CheckoutConstants.StatusSucceeded;
@@ -12,7 +35,7 @@ public sealed class PaymentConfirmationService(TicketingDbContext db)
         payment.ConfirmedAtUtc = confirmedAt;
         payment.DueAtUtc = null;
 
-        payment.LedgerEntries = AddBalancedLedgerEntries(payment);
+        payment.LedgerEntries = PersistBalancedLedgerEntries(payment);
     }
 
     public async Task<int> ConfirmDuePaymentsAsync(CancellationToken cancellationToken)
@@ -72,7 +95,7 @@ public sealed class PaymentConfirmationService(TicketingDbContext db)
                 setters => setters.SetProperty(o => o.Status, CheckoutConstants.StatusSucceeded),
                 cancellationToken);
 
-        AddBalancedLedgerEntries(payment);
+        PersistBalancedLedgerEntries(payment);
 
         try
         {
@@ -88,28 +111,10 @@ public sealed class PaymentConfirmationService(TicketingDbContext db)
         }
     }
 
-    private List<LedgerEntry> AddBalancedLedgerEntries(PaymentTransaction payment)
+    private List<LedgerEntry> PersistBalancedLedgerEntries(PaymentTransaction payment)
     {
-        var debit = new LedgerEntry
-        {
-            Id = Guid.NewGuid(),
-            TransactionId = payment.Id,
-            Account = CheckoutConstants.AccountCashGateway,
-            Side = CheckoutConstants.LedgerSideDebit,
-            AmountAed = payment.AmountAed
-        };
-
-        var credit = new LedgerEntry
-        {
-            Id = Guid.NewGuid(),
-            TransactionId = payment.Id,
-            Account = CheckoutConstants.AccountTicketSalesRevenue,
-            Side = CheckoutConstants.LedgerSideCredit,
-            AmountAed = payment.AmountAed
-        };
-
-        db.LedgerEntries.Add(debit);
-        db.LedgerEntries.Add(credit);
-        return [debit, credit];
+        var entries = CreateBalancedLedgerEntries(payment.Id, payment.AmountAed).ToList();
+        db.LedgerEntries.AddRange(entries);
+        return entries;
     }
 }

@@ -31,6 +31,35 @@ body {
   padding: 2.5rem 1.25rem 4rem;
 }
 
+.page-wide {
+  max-width: 960px;
+}
+
+.site-nav {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.site-nav a {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 650;
+}
+
+.site-nav a:hover {
+  border-color: var(--accent);
+}
+
+.site-nav a.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .hero {
   margin-bottom: 1.75rem;
 }
@@ -150,6 +179,162 @@ button[type="submit"]:disabled {
 
 .receipt h2 {
   margin-top: 0;
+}
+
+.ledger-panel {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.ledger-meta {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 0.85rem;
+}
+
+.ledger-meta div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.ledger-meta dt {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.ledger-meta dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+.ledger-awaiting {
+  margin: 0;
+  color: var(--warn);
+  font-weight: 650;
+}
+
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-table th,
+.ledger-table td {
+  padding: 0.45rem 0.35rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.ledger-table thead th,
+.ledger-table tfoot th,
+.ledger-table tfoot td {
+  font-size: 0.85rem;
+}
+
+.ledger-table td:nth-child(2),
+.ledger-table td:nth-child(3),
+.ledger-table th:nth-child(2),
+.ledger-table th:nth-child(3) {
+  text-align: right;
+}
+
+.ledger-table tfoot th,
+.ledger-table tfoot td {
+  border-bottom: 0;
+  font-weight: 700;
+}
+
+.ledger-balanced {
+  margin: 0.75rem 0 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.state {
+  margin: 0;
+  color: var(--muted);
+}
+
+.dashboard-section {
+  margin-bottom: 1.75rem;
+}
+
+.dashboard-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.orders-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.orders-table th,
+.orders-table td {
+  padding: 0.65rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.orders-table thead th {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.orders-table tbody tr {
+  cursor: pointer;
+}
+
+.orders-table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent-soft) 55%, #fff);
+}
+
+.orders-table tbody tr.selected {
+  background: var(--accent-soft);
+}
+
+.orders-table tbody tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.orders-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.dashboard-receipt {
+  margin-top: 0;
+}
+
+.dashboard-receipt .ledger-panel {
+  margin-top: 0.35rem;
+  padding-top: 0.75rem;
 }
 
 @media (max-width: 640px) {

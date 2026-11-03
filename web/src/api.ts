@@ -6,6 +6,16 @@ export type Ticket = {
   remainingQuota: number;
 };
 
+export type OrderSummary = {
+  id: string;
+  createdAtUtc: string;
+  ticketType: string;
+  quantity: number;
+  totalAed: number;
+  paymentMethod: string;
+  status: string;
+};
+
 export type OrderResponse = {
   id: string;
   requestId: string;
@@ -64,6 +74,12 @@ export async function createOrder(payload: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
+  if (!response.ok) throw new Error(await readError(response));
+  return response.json();
+}
+
+export async function fetchOrders(): Promise<OrderSummary[]> {
+  const response = await fetch(`${apiBase}/api/orders`);
   if (!response.ok) throw new Error(await readError(response));
   return response.json();
 }
