@@ -15,18 +15,20 @@ public sealed class CheckoutService(
         if (request.Quantity < 1)
             throw new CheckoutValidationException("Quantity must be a positive integer.");
 
+        var requestId = request.RequestId.Trim();
+
         var handler = paymentHandlers.FirstOrDefault(h =>
             string.Equals(h.Method, request.PaymentMethod, StringComparison.Ordinal));
         if (handler is null)
             throw new CheckoutValidationException("PaymentMethod must be Card or QR.");
 
-        var existing = await LoadByRequestIdAsync(request.RequestId, tracking: false, cancellationToken);
+        var existing = await LoadByRequestIdAsync(requestId, tracking: false, cancellationToken);
         if (existing is not null)
             return ReplayOrConflict(existing, request);
 
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
-        existing = await LoadByRequestIdAsync(request.RequestId, tracking: true, cancellationToken);
+        existing = await LoadByRequestIdAsync(requestId, tracking: true, cancellationToken);
         if (existing is not null)
         {
             await tx.CommitAsync(cancellationToken);
@@ -45,7 +47,18 @@ public sealed class CheckoutService(
                 cancellationToken);
 
         if (reserved != 1)
+        {
+            // Same requestId may have won the quota race; row lock means that order is committed by now.
+            var raced = await LoadByRequestIdAsync(requestId, tracking: false, cancellationToken);
+            if (raced is not null)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return ReplayOrConflict(raced, request);
+            }
+
+            await tx.RollbackAsync(cancellationToken);
             throw new InsufficientQuotaException();
+        }
 
         var now = DateTimeOffset.UtcNow;
         var total = decimal.Round(ticket.PriceAed * request.Quantity, 2, MidpointRounding.AwayFromZero);
@@ -55,7 +68,7 @@ public sealed class CheckoutService(
         var order = new Order
         {
             Id = orderId,
-            RequestId = request.RequestId.Trim(),
+            RequestId = requestId,
             TicketId = ticket.Id,
             Quantity = request.Quantity,
             UnitPriceAed = ticket.PriceAed,
@@ -89,7 +102,7 @@ public sealed class CheckoutService(
             await tx.RollbackAsync(cancellationToken);
             db.ChangeTracker.Clear();
 
-            var replay = await LoadByRequestIdAsync(request.RequestId, tracking: false, cancellationToken);
+            var replay = await LoadByRequestIdAsync(requestId, tracking: false, cancellationToken);
             if (replay is null)
                 throw;
 

@@ -12,27 +12,7 @@ public sealed class PaymentConfirmationService(TicketingDbContext db)
         payment.ConfirmedAtUtc = confirmedAt;
         payment.DueAtUtc = null;
 
-        var debit = new LedgerEntry
-        {
-            Id = Guid.NewGuid(),
-            TransactionId = payment.Id,
-            Account = CheckoutConstants.AccountCashGateway,
-            Side = CheckoutConstants.LedgerSideDebit,
-            AmountAed = payment.AmountAed
-        };
-
-        var credit = new LedgerEntry
-        {
-            Id = Guid.NewGuid(),
-            TransactionId = payment.Id,
-            Account = CheckoutConstants.AccountTicketSalesRevenue,
-            Side = CheckoutConstants.LedgerSideCredit,
-            AmountAed = payment.AmountAed
-        };
-
-        db.LedgerEntries.Add(debit);
-        db.LedgerEntries.Add(credit);
-        payment.LedgerEntries = [debit, credit];
+        payment.LedgerEntries = AddBalancedLedgerEntries(payment);
     }
 
     public async Task<int> ConfirmDuePaymentsAsync(CancellationToken cancellationToken)
@@ -92,23 +72,7 @@ public sealed class PaymentConfirmationService(TicketingDbContext db)
                 setters => setters.SetProperty(o => o.Status, CheckoutConstants.StatusSucceeded),
                 cancellationToken);
 
-        db.LedgerEntries.Add(new LedgerEntry
-        {
-            Id = Guid.NewGuid(),
-            TransactionId = payment.Id,
-            Account = CheckoutConstants.AccountCashGateway,
-            Side = CheckoutConstants.LedgerSideDebit,
-            AmountAed = payment.AmountAed
-        });
-
-        db.LedgerEntries.Add(new LedgerEntry
-        {
-            Id = Guid.NewGuid(),
-            TransactionId = payment.Id,
-            Account = CheckoutConstants.AccountTicketSalesRevenue,
-            Side = CheckoutConstants.LedgerSideCredit,
-            AmountAed = payment.AmountAed
-        });
+        AddBalancedLedgerEntries(payment);
 
         try
         {
@@ -122,5 +86,30 @@ public sealed class PaymentConfirmationService(TicketingDbContext db)
             db.ChangeTracker.Clear();
             throw;
         }
+    }
+
+    private List<LedgerEntry> AddBalancedLedgerEntries(PaymentTransaction payment)
+    {
+        var debit = new LedgerEntry
+        {
+            Id = Guid.NewGuid(),
+            TransactionId = payment.Id,
+            Account = CheckoutConstants.AccountCashGateway,
+            Side = CheckoutConstants.LedgerSideDebit,
+            AmountAed = payment.AmountAed
+        };
+
+        var credit = new LedgerEntry
+        {
+            Id = Guid.NewGuid(),
+            TransactionId = payment.Id,
+            Account = CheckoutConstants.AccountTicketSalesRevenue,
+            Side = CheckoutConstants.LedgerSideCredit,
+            AmountAed = payment.AmountAed
+        };
+
+        db.LedgerEntries.Add(debit);
+        db.LedgerEntries.Add(credit);
+        return [debit, credit];
     }
 }
